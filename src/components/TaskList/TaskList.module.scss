@@ -1,0 +1,37 @@
+.tasksTitle {
+  margin-top: 1.5rem;
+}
+
+.tasks {
+  .task {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+
+    &.isdone {
+      .task_name {
+        text-decoration: line-through;
+        color: #b5b5b5;
+      }
+    }
+
+    .task_name {
+      flex-grow: 1;
+      padding: 0 10px;
+    }
+
+    button {
+      min-width: 4rem;
+      height: 4rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      svg {
+        width: 2rem;
+        height: 2rem;
+      }
+    }
+  }
+}

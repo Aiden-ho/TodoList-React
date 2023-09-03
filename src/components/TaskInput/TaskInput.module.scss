@@ -1,0 +1,25 @@
+.formTask {
+  display: flex;
+  margin: 10px 0;
+  gap: 10px;
+
+  .taskInput {
+    border-radius: 0.8rem;
+    padding: 0.6rem;
+    flex-grow: 1;
+  }
+
+  .taskButton {
+    border-radius: 0.8rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 6rem;
+
+    svg {
+      width: 1.6rem;
+      height: 1.6rem;
+      fill: #4546ff;
+    }
+  }
+}
