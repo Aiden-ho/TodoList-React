@@ -1,12 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useReducer, useState } from 'react'
 import TaskInput from '../TaskInput'
 import TaskList from '../TaskList'
 import styles from './todolist.module.scss'
 import ToDo from '../../@types/ToDo.type'
-
-interface HandleNewTodos {
-  (todos: ToDo[]): ToDo[]
-}
+import HandleNewTodos from '../../@types/HandleNewTodos.type'
+import reducer, { initialState, logger } from '../../reducer/reducer'
+import {
+  initTaskFromLocalAction,
+  generateTaskAction,
+  changeStageTaskAction,
+  storeCurrentTaskAction,
+  editingCurrentTaskAction,
+  saveEditedCurrentTaskAction,
+  deleteTaskAction
+} from '../../reducer/actions'
 
 const syncToLocal = (handleNewTodos: HandleNewTodos) => {
   const todoLocal = localStorage.getItem('todos')
@@ -19,26 +26,32 @@ export default function Todolist() {
   const [todos, setTodos] = useState<ToDo[]>([])
   const [currentTask, setCurrentTask] = useState<ToDo | null>(null)
 
+  const [state, dispatch] = useReducer(logger(), initialState)
+
   useEffect(() => {
     //sync from localstorage to state
-    const todoLocal = localStorage.getItem('todos')
-    const todosLocalObj: ToDo[] = JSON.parse(todoLocal || '[]')
-    setTodos(todosLocalObj)
+    // const todoLocal = localStorage.getItem('todos')
+    // const todosLocalObj: ToDo[] = JSON.parse(todoLocal || '[]')
+    // setTodos(todosLocalObj)
+    dispatch(initTaskFromLocalAction())
   }, [])
 
-  const unFinishList = todos.filter((item) => item.isdone === false)
-  const finishList = todos.filter((item) => item.isdone)
+  const unFinishList = state.todos.filter((item) => item.isdone === false)
+  const finishList = state.todos.filter((item) => item.isdone)
 
   const generateToDo = (name: string) => {
-    let newToDo: ToDo = {
-      id: new Date().toISOString(),
-      name,
-      isdone: false
+    if (name) {
+      let newToDo: ToDo = {
+        id: new Date().toISOString(),
+        name,
+        isdone: false
+      }
+      //create new todo in state
+      // setTodos((prev) => [...prev, newToDo])
+      dispatch(generateTaskAction(newToDo))
+      //sync to localstorage cb
+      syncToLocal((todosLocalObj: ToDo[]) => [...todosLocalObj, newToDo])
     }
-    //create new todo in state
-    setTodos((prev) => [...prev, newToDo])
-    //sync to localstorage cb
-    syncToLocal((todosLocalObj: ToDo[]) => [...todosLocalObj, newToDo])
   }
 
   const taskChangeStage = (task_id: string, isdone: boolean) => {
@@ -48,49 +61,52 @@ export default function Todolist() {
         return item
       })
     }
+    // //Set Stage trả về prev state và handler đã đưa nó vào param của mình
+    // setTodos(handler)
 
-    //Set Stage trả về prev state và handler đã đưa nó vào param của mình
-    setTodos(handler)
+    dispatch(changeStageTaskAction(task_id, isdone))
     //sync to localstorage
     // Param của handler truyền vào từ synctoLocal
     syncToLocal(handler)
   }
 
   const startEditTask = (id: string) => {
-    let targetTask = todos.find((item) => item.id === id)
+    let targetTask = state.todos.find((item) => item.id === id)
 
     if (targetTask) {
-      setCurrentTask(targetTask)
+      dispatch(storeCurrentTaskAction(targetTask))
     }
   }
 
   const editingTask = (value: string) => {
-    setCurrentTask((prev) => {
-      if (prev) {
-        let newCurrent = { ...prev }
-        newCurrent.name = value
-        return newCurrent
-      }
-      return null
-    })
+    dispatch(editingCurrentTaskAction(value))
+    // setCurrentTask((prev) => {
+    //   if (prev) {
+    //     let newCurrent = { ...prev }
+    //     newCurrent.name = value
+    //     return newCurrent
+    //   }
+    //   return null
+    // })
   }
 
   const finishedEditTask = () => {
+    dispatch(saveEditedCurrentTaskAction())
     const handler = (todosObj: ToDo[]) => {
       console.log(todosObj)
       return todosObj.map((item) => {
         //ép kiểu TODO => luôn luôn todo
-        if (item.id === (currentTask as ToDo).id) {
-          return currentTask as ToDo
+        if (item.id === (state.currentTask as ToDo).id) {
+          return state.currentTask as ToDo
         }
         return item
       })
     }
 
     //Set Stage trả về prev state và handler đã đưa nó vào param của mình
-    setTodos(handler)
+    // setTodos(handler)
 
-    setCurrentTask(null)
+    // setCurrentTask(null)
 
     //sync to localstorage
     // Param của handler truyền vào từ synctoLocal
@@ -98,16 +114,17 @@ export default function Todolist() {
   }
 
   const deleteTask = (id: string) => {
-    if (currentTask) {
-      setCurrentTask(null)
-    }
+    // if (currentTask) {
+    //   setCurrentTask(null)
+    // }
 
     const handler = (todosObj: ToDo[]) => {
       return todosObj.filter((item) => item.id !== id)
     }
 
     //Set Stage trả về prev state và handler đã đưa nó vào param của mình
-    setTodos(handler)
+    // setTodos(handler)
+    dispatch(deleteTaskAction(id))
     //sync to localstorage
     // Param của handler truyền vào từ synctoLocal
     syncToLocal(handler)
@@ -118,7 +135,7 @@ export default function Todolist() {
       <h1 className={styles.title}>To Do List Typescript</h1>
       <TaskInput
         generateToDo={generateToDo}
-        currentTask={currentTask}
+        currentTask={state.currentTask}
         editingTask={editingTask}
         finishedEditTask={finishedEditTask}
       />
